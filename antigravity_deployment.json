@@ -1,0 +1,195 @@
+{
+    "gcp_project_setup": {
+        "requirements": {
+            "platform": "Google Cloud Platform",
+            "region": "us-central1 (recommended)",
+            "billing_account": "Required",
+            "project_id_format": "antigravity-prod-[unique-id]"
+        },
+        "apis_to_enable": [
+            "run.googleapis.com",
+            "cloudscheduler.googleapis.com",
+            "firestore.googleapis.com",
+            "secretmanager.googleapis.com",
+            "cloudbuild.googleapis.com",
+            "logging.googleapis.com",
+            "monitoring.googleapis.com",
+            "pubsub.googleapis.com"
+        ]
+    },
+    "service_account_setup": {
+        "name": "antigravity-sa",
+        "display_name": "Antigravity Service Account",
+        "roles": [
+            "roles/run.invoker",
+            "roles/datastore.user",
+            "roles/secretmanager.secretAccessor",
+            "roles/storage.objectAdmin",
+            "roles/logging.logWriter",
+            "roles/monitoring.metricWriter"
+        ]
+    },
+    "cloud_run_config": {
+        "service_name": "antigravity-core",
+        "region": "us-central1",
+        "memory": "2Gi",
+        "cpu": "1",
+        "concurrency": 80,
+        "max_instances": 10,
+        "min_instances": 0,
+        "timeout_seconds": 300,
+        "ingress": "all"
+    },
+    "cloud_scheduler_jobs": [
+        {
+            "name": "antigravity-morning-brief",
+            "schedule": "0 8 * * 1-5",
+            "timezone": "Europe/Istanbul",
+            "target_uri": "/api/v1/reports/morning",
+            "http_method": "POST"
+        },
+        {
+            "name": "antigravity-midday-update",
+            "schedule": "0 13 * * 1-5",
+            "timezone": "Europe/Istanbul",
+            "target_uri": "/api/v1/reports/midday",
+            "http_method": "POST"
+        },
+        {
+            "name": "antigravity-evening-wrap",
+            "schedule": "0 18 * * 1-5",
+            "timezone": "Europe/Istanbul",
+            "target_uri": "/api/v1/reports/evening",
+            "http_method": "POST"
+        },
+        {
+            "name": "antigravity-hourly-monitor",
+            "schedule": "0 * * * 1-5",
+            "timezone": "Europe/Istanbul",
+            "target_uri": "/api/v1/monitor/hourly",
+            "http_method": "POST"
+        }
+    ],
+    "firestore_schema": {
+        "collections": [
+            {
+                "name": "users",
+                "description": "User profiles and preferences"
+            },
+            {
+                "name": "reports",
+                "description": "Generated market reports and archives"
+            },
+            {
+                "name": "alerts",
+                "description": "Active and historical alerts"
+            },
+            {
+                "name": "market_data",
+                "description": "Cached market data and indicators"
+            }
+        ]
+    },
+    "cloud_storage_config": {
+        "bucket_name_template": "antigravity-data-[project-id]",
+        "location": "us-central1",
+        "lifecycle_rule": {
+            "action": "Delete",
+            "age_days": 365
+        }
+    },
+    "secret_manager_config": {
+        "secrets": [
+            "FINNHUB_API_KEY",
+            "OPENAI_API_KEY",
+            "SLACK_WEBHOOK_URL",
+            "TELEGRAM_BOT_TOKEN",
+            "DATABASE_URL"
+        ]
+    },
+    "monitoring_and_alerts": {
+        "uptime_check": {
+            "path": "/health",
+            "frequency": "5 mins"
+        },
+        "alert_policies": [
+            {
+                "name": "High Error Rate",
+                "condition": "error_count > 5 per 5 mins"
+            },
+            {
+                "name": "High Latency",
+                "condition": "latency > 2000ms for 5 mins"
+            }
+        ]
+    },
+    "pubsub_topics": [
+        {
+            "name": "market-events",
+            "description": "Real-time market event stream"
+        },
+        {
+            "name": "system-notifications",
+            "description": "System status and error notifications"
+        }
+    ],
+    "deployment_steps": [
+        "1. Create a new Google Cloud Project and enable billing.",
+        "2. Enable required APIs listed in 'gcp_project_setup'.",
+        "3. Create Service Account and assign IAM roles.",
+        "4. Create Firestore database in Native mode.",
+        "5. Create Cloud Storage bucket for data archival.",
+        "6. Add API keys to Secret Manager.",
+        "7. Build and push Docker image to Container Registry/Artifact Registry.",
+        "8. Deploy Cloud Run service with environment variables and secrets.",
+        "9. Create Cloud Scheduler jobs pointing to Cloud Run service URL.",
+        "10. Configure monitoring uptime checks and alert policies.",
+        "11. Verify deployment by hitting the /health endpoint.",
+        "12. Run a manual test of the morning report generation."
+    ],
+    "estimated_monthly_costs": {
+        "total": "$82.30",
+        "breakdown": {
+            "cloud_run": "$2.00",
+            "cloud_scheduler": "$0.30",
+            "firestore": "$5.00",
+            "apis_and_other": "$75.00"
+        }
+    },
+    "production_checklist": {
+        "pre_deployment": [
+            "Code review passed",
+            "Unit tests passing",
+            "Secrets prepared"
+        ],
+        "during_deployment": [
+            "Build successful",
+            "Migration scripts ran",
+            "Health check passed"
+        ],
+        "post_deployment": [
+            "Scheduler jobs verified",
+            "Alerts configured",
+            "Backup policy active"
+        ]
+    },
+    "troubleshooting_guide": [
+        {
+            "issue": "Cloud Run 503 Error",
+            "fix": "Check concurrency settings and max instances."
+        },
+        {
+            "issue": "Scheduler Job Failed",
+            "fix": "Verify target URI and authentication headers."
+        },
+        {
+            "issue": "Firestore Quota Exceeded",
+            "fix": "Optimize read/write operations or request quota increase."
+        }
+    ],
+    "performance_targets": {
+        "api_latency": "< 500ms (p95)",
+        "report_generation_time": "< 60s",
+        "uptime_sla": "99.9%"
+    }
+}
